@@ -31,7 +31,7 @@
     {
       "files": [
         "app/api/**/route.ts",
-        "src/**/*.actions.server.ts",
+        "src/**/*actions.server.ts",
         "scripts/**/*.ts",
         "src/lib/server/**/*.ts",
         "tests/**/*.ts",

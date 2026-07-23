@@ -18,12 +18,12 @@ export type FinancialStatus =
 
 export type AiSummaryStatus = "pending_review" | "approved" | "rejected" | "edited";
 
-interface WithTimestamps {
+type WithTimestamps = {
   created_at: string;
   updated_at: string;
-}
+};
 
-export interface Database {
+export type Database = {
   public: {
     Tables: {
       profiles: {
@@ -45,6 +45,7 @@ export interface Database {
           email: string;
         };
         Update: Partial<Database["public"]["Tables"]["profiles"]["Row"]>;
+        Relationships: [];
       };
       clients: {
         Row: WithTimestamps & {
@@ -64,6 +65,7 @@ export interface Database {
           full_name: string;
         };
         Update: Partial<Database["public"]["Tables"]["clients"]["Row"]>;
+        Relationships: [];
       };
       client_access: {
         Row: WithTimestamps & {
@@ -84,6 +86,7 @@ export interface Database {
           client_id: string;
         };
         Update: Partial<Database["public"]["Tables"]["client_access"]["Row"]>;
+        Relationships: [];
       };
       processes: {
         Row: WithTimestamps & {
@@ -111,6 +114,7 @@ export interface Database {
           process_number: string;
         };
         Update: Partial<Database["public"]["Tables"]["processes"]["Row"]>;
+        Relationships: [];
       };
       process_updates: {
         Row: WithTimestamps & {
@@ -137,6 +141,7 @@ export interface Database {
           update_date: string;
         };
         Update: Partial<Database["public"]["Tables"]["process_updates"]["Row"]>;
+        Relationships: [];
       };
       hearings: {
         Row: WithTimestamps & {
@@ -164,6 +169,7 @@ export interface Database {
           scheduled_at: string;
         };
         Update: Partial<Database["public"]["Tables"]["hearings"]["Row"]>;
+        Relationships: [];
       };
       deadlines: {
         Row: WithTimestamps & {
@@ -187,6 +193,7 @@ export interface Database {
           due_date: string;
         };
         Update: Partial<Database["public"]["Tables"]["deadlines"]["Row"]>;
+        Relationships: [];
       };
       contracts: {
         Row: WithTimestamps & {
@@ -213,6 +220,7 @@ export interface Database {
           contract_number: string;
         };
         Update: Partial<Database["public"]["Tables"]["contracts"]["Row"]>;
+        Relationships: [];
       };
       financial_entries: {
         Row: WithTimestamps & {
@@ -243,6 +251,7 @@ export interface Database {
           due_date: string;
         };
         Update: Partial<Database["public"]["Tables"]["financial_entries"]["Row"]>;
+        Relationships: [];
       };
       documents: {
         Row: WithTimestamps & {
@@ -272,6 +281,7 @@ export interface Database {
           mime_type: string;
         };
         Update: Partial<Database["public"]["Tables"]["documents"]["Row"]>;
+        Relationships: [];
       };
       messages: {
         Row: WithTimestamps & {
@@ -289,6 +299,7 @@ export interface Database {
           body: string;
         };
         Update: Partial<Database["public"]["Tables"]["messages"]["Row"]>;
+        Relationships: [];
       };
       notifications: {
         Row: WithTimestamps & {
@@ -305,6 +316,7 @@ export interface Database {
           body: string;
         };
         Update: Partial<Database["public"]["Tables"]["notifications"]["Row"]>;
+        Relationships: [];
       };
       support_requests: {
         Row: WithTimestamps & {
@@ -321,6 +333,7 @@ export interface Database {
           body: string;
         };
         Update: Partial<Database["public"]["Tables"]["support_requests"]["Row"]>;
+        Relationships: [];
       };
       ai_summaries: {
         Row: WithTimestamps & {
@@ -349,6 +362,7 @@ export interface Database {
           plain_language_summary: string;
         };
         Update: Partial<Database["public"]["Tables"]["ai_summaries"]["Row"]>;
+        Relationships: [];
       };
       notion_sync_logs: {
         Row: {
@@ -369,6 +383,7 @@ export interface Database {
           started_at: string;
         };
         Update: Partial<Database["public"]["Tables"]["notion_sync_logs"]["Row"]>;
+        Relationships: [];
       };
       access_logs: {
         Row: {
@@ -387,6 +402,7 @@ export interface Database {
           resource_type: string;
         };
         Update: never;
+        Relationships: [];
       };
       audit_logs: {
         Row: {
@@ -404,6 +420,20 @@ export interface Database {
           entity_type: string;
         };
         Update: never;
+        Relationships: [];
+      };
+      auth_rate_limits: {
+        Row: {
+          key: string;
+          attempts: number;
+          window_started_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["auth_rate_limits"]["Row"]> & {
+          key: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["auth_rate_limits"]["Row"]>;
+        Relationships: [];
       };
       team_members: {
         Row: WithTimestamps & {
@@ -418,7 +448,25 @@ export interface Database {
           profile_id: string;
         };
         Update: Partial<Database["public"]["Tables"]["team_members"]["Row"]>;
+        Relationships: [];
       };
     };
+    Views: Record<string, never>;
+    Functions: {
+      consume_activation_code: {
+        Args: { p_client_access_id: string; p_code_hash: string };
+        Returns: boolean;
+      };
+      is_admin: {
+        Args: Record<string, never>;
+        Returns: boolean;
+      };
+      has_client_access: {
+        Args: { p_client_id: string };
+        Returns: boolean;
+      };
+    };
+    Enums: Record<string, never>;
+    CompositeTypes: Record<string, never>;
   };
-}
+};

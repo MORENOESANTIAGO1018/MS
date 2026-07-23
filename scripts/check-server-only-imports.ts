@@ -24,7 +24,7 @@ const USE_CLIENT_PATTERN = /^\s*["']use client["'];?\s*$/m;
 const ALLOWED_SERVER_ONLY_DIR_PATTERNS = [
   /^app[\\/]api[\\/]/,
   /^src[\\/]lib[\\/]server[\\/]/,
-  /\.actions\.server\.ts$/,
+  /actions\.server\.ts$/,
   /^scripts[\\/]/,
   /^tests[\\/]/,
 ];

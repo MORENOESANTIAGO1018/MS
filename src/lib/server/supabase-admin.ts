@@ -45,3 +45,41 @@ export function getSupabaseAdminClient() {
 
   return cachedAdminClient;
 }
+
+/**
+ * Revoga todas as sessoes ativas de um usuario (regra da Fase 6: "revogar
+ * sessoes"). O SDK @supabase/supabase-js nesta versao so expoe
+ * auth.admin.signOut(jwt) por token, nao por userId — usamos por isso o
+ * endpoint administrativo GoTrue diretamente. Verificar contra o projeto
+ * Supabase real antes de depender disso em producao (documentado em
+ * CHECKLIST-DE-PRODUCAO.md).
+ */
+export async function adminRevokeAllSessions(userId: string): Promise<boolean> {
+  const publicEnv = getPublicEnv();
+  const serverEnv = getServerEnv();
+
+  if (!serverEnv.SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error("SUPABASE_SERVICE_ROLE_KEY nao configurada.");
+  }
+
+  const response = await fetch(
+    `${publicEnv.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/admin/users/${userId}/logout`,
+    {
+      method: "POST",
+      headers: {
+        apikey: serverEnv.SUPABASE_SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${serverEnv.SUPABASE_SERVICE_ROLE_KEY}`,
+      },
+    },
+  );
+
+  if (!response.ok) {
+    logger.error("Falha ao revogar sessoes do usuario", {
+      status: response.status,
+      userId,
+    });
+    return false;
+  }
+
+  return true;
+}

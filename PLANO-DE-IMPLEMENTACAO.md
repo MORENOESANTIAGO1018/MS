@@ -53,10 +53,15 @@ Rotas em `app/(portal)/*`: `painel`, `processos`, `processos/[id]`, `andamentos`
 `app/(institucional)/privacidade`, `app/(institucional)/termos`.
 
 ## Fase 6 — Painel administrativo
-Rotas em `app/(admin)/*`: `dashboard`, `clientes`, `processos`, `andamentos`,
-`audiencias`, `prazos`, `contratos`, `financeiro`, `documentos`, `mensagens`,
-`usuarios`, `permissoes`, `relatorios`, `logs`, `configuracoes`,
-`sincronizacao`, `resumos-ia`.
+Rotas sob o prefixo real `/admin/*` (não um route group — necessário para o
+middleware distinguir área administrativa de área do cliente por prefixo de path,
+já que vários nomes de página se repetem entre os dois, ex. "processos"):
+`app/admin/dashboard`, `app/admin/clientes`, `app/admin/processos`,
+`app/admin/andamentos`, `app/admin/audiencias`, `app/admin/prazos`,
+`app/admin/contratos`, `app/admin/financeiro`, `app/admin/documentos`,
+`app/admin/mensagens`, `app/admin/usuarios`, `app/admin/permissoes`,
+`app/admin/relatorios`, `app/admin/logs`, `app/admin/configuracoes`,
+`app/admin/sincronizacao`, `app/admin/resumos-ia`.
 
 ## Fase 7 — Integração Notion
 `src/modules/notion-sync/*`: `client.ts` (wrapper server-only), `allowed-fields.ts`
