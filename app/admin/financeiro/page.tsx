@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { listAllFinancialEntries, listAllClients } from "@/modules/admin/queries";
 import { CreateFinancialEntryForm } from "@/modules/admin/components/CreateFinancialEntryForm";
 import { UpdateFinancialStatusForm } from "@/modules/admin/components/UpdateFinancialStatusForm";
+import { ReceiptUploadForm } from "@/modules/financial/components/ReceiptUploadForm";
+import { DownloadReceiptButton } from "@/modules/financial/components/DownloadReceiptButton";
 import { Card, CardTitle } from "@/components/ui/Card";
 import { formatCurrency, formatDate } from "@/lib/format";
 
@@ -34,6 +36,13 @@ export default async function AdminFinanceiroPage() {
                 </p>
               </div>
               <UpdateFinancialStatusForm entryId={entry.id} status={entry.status} />
+            </div>
+            <div className="mt-3 border-t border-slate-100 pt-2">
+              {entry.receipt_storage_path ? (
+                <DownloadReceiptButton financialEntryId={entry.id} />
+              ) : (
+                <ReceiptUploadForm financialEntryId={entry.id} clientId={entry.client_id} />
+              )}
             </div>
           </Card>
         ))}

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getPortalContext } from "@/modules/clients/current-client";
 import { listFinancialEntriesForClient, FINANCIAL_STATUS_LABELS } from "@/modules/financial/queries";
+import { DownloadReceiptButton } from "@/modules/financial/components/DownloadReceiptButton";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { formatCurrency, formatDate } from "@/lib/format";
@@ -30,10 +31,20 @@ export default async function FinanceiroPage() {
       <h1 className="text-xl font-serif font-semibold text-brand-navy">Financeiro</h1>
 
       <Card>
-        <p className="text-sm text-slate-500">Saldo pendente</p>
-        <p className="text-2xl font-semibold text-brand-navy">
-          {formatCurrency(totalPendente)}
-        </p>
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-sm text-slate-500">Saldo pendente</p>
+            <p className="text-2xl font-semibold text-brand-navy">
+              {formatCurrency(totalPendente)}
+            </p>
+          </div>
+          <a
+            href="/api/financial-entries/statement"
+            className="text-xs text-brand-navy underline underline-offset-2"
+          >
+            Baixar extrato em PDF
+          </a>
+        </div>
       </Card>
 
       {entries.length === 0 && (
@@ -59,6 +70,11 @@ export default async function FinanceiroPage() {
               {FINANCIAL_STATUS_LABELS[entry.status]}
             </Badge>
           </div>
+          {entry.receipt_storage_path && (
+            <div className="mt-2 border-t border-slate-100 pt-2">
+              <DownloadReceiptButton financialEntryId={entry.id} />
+            </div>
+          )}
         </Card>
       ))}
     </div>
