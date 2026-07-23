@@ -146,6 +146,7 @@ function mapRawClientPage(page: unknown): NotionClientRecord {
     status: getSelectName(getProp(page, "Status")) ?? "Lead",
     internalCode: getPlainText(getProp(page, "Código interno")),
     documentLast4: null, // CPF nunca sincronizado por completo — ver allowed-fields.ts
+    portalAtivo: getCheckbox(getProp(page, "Portal ativo")),
   };
 }
 

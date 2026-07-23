@@ -9,6 +9,7 @@ export interface NotionClientRecord {
   status: string;
   internalCode: string | null;
   documentLast4: string | null;
+  portalAtivo: boolean;
 }
 
 export interface NotionProcessRecord {

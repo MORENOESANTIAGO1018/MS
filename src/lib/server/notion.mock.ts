@@ -24,6 +24,7 @@ export class MockNotionAdapter implements NotionAdapter {
         status: "Cliente ativo",
         internalCode: "CLI-0001",
         documentLast4: "0001",
+        portalAtivo: true,
       },
     ];
   }
