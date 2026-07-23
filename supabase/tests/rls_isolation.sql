@@ -61,6 +61,29 @@ begin
   raise notice 'PASS: cliente A ve somente seus proprios dados publicados (isolamento OK)';
 end $$;
 
+-- storage.objects: cliente A so ve os proprios arquivos, nunca os do cliente B
+do $$
+declare
+  visible_objects int;
+  sees_client_b_object int;
+begin
+  -- Apenas 1 dos 2 documentos do cliente A e visivel via storage: o sigiloso
+  -- (doc2.pdf) fica de fora mesmo sendo do proprio cliente, pois
+  -- is_confidential=true (mesma regra da tabela public.documents).
+  select count(*) into visible_objects from storage.objects where bucket_id = 'documents';
+  if visible_objects <> 1 then
+    raise exception 'FALHA: cliente A deveria ver 1 objeto de storage (documento publico, nao o sigiloso), viu %', visible_objects;
+  end if;
+
+  select count(*) into sees_client_b_object from storage.objects
+    where bucket_id = 'documents' and name like 'clients/00000000-0000-0000-0000-0000000000b1/%';
+  if sees_client_b_object <> 0 then
+    raise exception 'FALHA CRITICA: cliente A conseguiu ver objeto de storage do cliente B';
+  end if;
+
+  raise notice 'PASS: cliente A ve apenas os proprios objetos de storage';
+end $$;
+
 -- Cliente A nao pode escrever em financial_entries mesmo que tente. A
 -- protecao pode se manifestar de duas formas validas: (a) a policy de UPDATE
 -- ja nega a linha para o papel client, entao 0 linhas sao afetadas

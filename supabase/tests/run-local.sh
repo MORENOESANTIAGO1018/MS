@@ -26,8 +26,9 @@ echo "==> Recriando banco de teste ${DB_NAME}"
 su postgres -c "psql -c 'DROP DATABASE IF EXISTS ${DB_NAME};'"
 su postgres -c "psql -c 'CREATE DATABASE ${DB_NAME};'"
 
-echo "==> Bootstrap local de auth (apenas sandbox sem Supabase CLI)"
+echo "==> Bootstrap local de auth e storage (apenas sandbox sem Supabase CLI)"
 run_psql "${ROOT_DIR}/supabase/local-dev/bootstrap_local_auth_stub.sql"
+run_psql "${ROOT_DIR}/supabase/local-dev/bootstrap_local_storage_stub.sql"
 
 echo "==> Aplicando migrations"
 for f in "${ROOT_DIR}"/supabase/migrations/*.sql; do

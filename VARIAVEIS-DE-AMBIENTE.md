@@ -51,6 +51,14 @@ seu nível de sensibilidade.
 | `AUTH_RATE_LIMIT_WINDOW_MIN` | não | Janela do rate limit (padrão 15) |
 | `ACTIVATION_CODE_PEPPER` | **sim** | Pepper adicional ao hash do código de ativação |
 
+## Documentos (Fase 9)
+
+| Variável | Sensível | Descrição |
+|---|---|---|
+| `MAX_DOCUMENT_SIZE_MB` | não | Tamanho máximo de upload (padrão 20MB) |
+| `ALLOWED_DOCUMENT_MIME_TYPES` | não | Lista de MIME types aceitos, separados por vírgula |
+| `DOCUMENT_SIGNED_URL_TTL_SECONDS` | não | Validade da URL assinada de download (padrão 300s) |
+
 ## Aplicação
 
 | Variável | Sensível | Descrição |

@@ -44,7 +44,19 @@ insert into public.financial_entries (id, client_id, description, amount, due_da
 on conflict (id) do nothing;
 
 insert into public.documents (id, client_id, name, storage_path, uploaded_by_role, size_bytes, mime_type, is_confidential, is_visible_to_client) values
-  ('00000000-0000-0000-0000-0000000030a1', '00000000-0000-0000-0000-0000000000a1', 'Documento Público A (fictício)', 'clients/a1/doc1.pdf', 'staff', 1024, 'application/pdf', false, true),
-  ('00000000-0000-0000-0000-0000000030a2', '00000000-0000-0000-0000-0000000000a1', 'Documento Sigiloso A (fictício)', 'clients/a1/doc2.pdf', 'staff', 2048, 'application/pdf', true, true),
-  ('00000000-0000-0000-0000-0000000030b1', '00000000-0000-0000-0000-0000000000b1', 'Documento Público B (fictício)', 'clients/b1/doc1.pdf', 'staff', 1024, 'application/pdf', false, true)
+  ('00000000-0000-0000-0000-0000000030a1', '00000000-0000-0000-0000-0000000000a1', 'Documento Público A (fictício)', 'clients/00000000-0000-0000-0000-0000000000a1/doc1.pdf', 'staff', 1024, 'application/pdf', false, true),
+  ('00000000-0000-0000-0000-0000000030a2', '00000000-0000-0000-0000-0000000000a1', 'Documento Sigiloso A (fictício)', 'clients/00000000-0000-0000-0000-0000000000a1/doc2.pdf', 'staff', 2048, 'application/pdf', true, true),
+  ('00000000-0000-0000-0000-0000000030b1', '00000000-0000-0000-0000-0000000000b1', 'Documento Público B (fictício)', 'clients/00000000-0000-0000-0000-0000000000b1/doc1.pdf', 'staff', 1024, 'application/pdf', false, true)
 on conflict (id) do nothing;
+
+-- Objetos de storage correspondentes (apenas para o stub local — em um
+-- projeto Supabase real estas linhas sao criadas automaticamente pelo
+-- proprio upload via Storage API).
+insert into storage.buckets (id, name, public) values ('documents', 'documents', false)
+on conflict (id) do nothing;
+
+insert into storage.objects (bucket_id, name) values
+  ('documents', 'clients/00000000-0000-0000-0000-0000000000a1/doc1.pdf'),
+  ('documents', 'clients/00000000-0000-0000-0000-0000000000a1/doc2.pdf'),
+  ('documents', 'clients/00000000-0000-0000-0000-0000000000b1/doc1.pdf')
+on conflict do nothing;

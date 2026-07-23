@@ -62,6 +62,13 @@ const serverEnvSchema = z.object({
   AUTH_RATE_LIMIT_MAX_ATTEMPTS: z.coerce.number().default(5),
   AUTH_RATE_LIMIT_WINDOW_MIN: z.coerce.number().default(15),
   AUDIT_LOG_RETENTION_DAYS: z.coerce.number().default(180),
+  MAX_DOCUMENT_SIZE_MB: z.coerce.number().default(20),
+  ALLOWED_DOCUMENT_MIME_TYPES: z
+    .string()
+    .default(
+      "application/pdf,image/png,image/jpeg,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ),
+  DOCUMENT_SIGNED_URL_TTL_SECONDS: z.coerce.number().default(300),
   NODE_ENV: z
     .enum(["development", "test", "production"])
     .default("development"),
