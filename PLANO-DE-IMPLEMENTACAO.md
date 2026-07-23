@@ -21,14 +21,22 @@ com: revisão de código → testes → correções → documentação → commi
 - `supabase/migrations/0001_extensions_and_enums.sql`
 - `supabase/migrations/0002_core_tables.sql` (profiles, team_members, clients,
   client_access)
-- `supabase/migrations/0003_domain_tables.sql` (processes … support_requests)
-- `supabase/migrations/0004_triggers.sql`
-- `supabase/migrations/0005_rls_policies.sql`
-- `supabase/migrations/0006_views_and_functions.sql` (views seguras para o cliente,
-  função `is_client_of(client_id)`, `has_role(role)`)
-- `supabase/seed/seed_fictitious.sql` — dados fictícios de desenvolvimento
-- `supabase/tests/rls_isolation.sql` — prova de isolamento entre clientes (pgTAP ou
-  asserts via `SET ROLE`)
+- `supabase/migrations/0003_domain_tables.sql` (processes … audit_logs, 18 tabelas)
+- `supabase/migrations/0004_indexes_and_triggers.sql` (índices + `set_updated_at`,
+  `prevent_client_financial_write`, `stamp_document_upload`,
+  `prevent_profile_privilege_escalation`)
+- `supabase/migrations/0005_auth_helper_functions.sql` (`is_admin`,
+  `is_staff_or_admin`, `has_client_access`, `current_profile_role` — SECURITY DEFINER)
+- `supabase/migrations/0006_rls_policies.sql` — RLS habilitada e políticas em todas as
+  18 tabelas
+- `supabase/migrations/0007_functions_and_safeguards.sql` (`redact_sensitive_jsonb` +
+  trigger em `audit_logs`, `consume_activation_code` atômico)
+- `supabase/seed/seed_fictitious.sql` — dados fictícios de desenvolvimento (2 clientes,
+  staff, admin, dados publicados e não publicados)
+- `supabase/tests/rls_isolation.sql` + `supabase/tests/run-local.sh` — prova executável
+  de isolamento entre clientes (`npm run db:test:rls`), validada neste ambiente contra
+  PostgreSQL local com `supabase/local-dev/bootstrap_local_auth_stub.sql` simulando
+  `auth.uid()`/papéis do Supabase (nunca rodar o stub contra um projeto Supabase real)
 
 ## Fase 4 — Autenticação
 - `src/modules/auth/*`: `sendInvite`, `activateAccount`, `login`, `requestOtp`,

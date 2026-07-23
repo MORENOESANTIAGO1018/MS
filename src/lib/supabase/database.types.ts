@@ -70,7 +70,7 @@ export interface Database {
           id: string;
           profile_id: string;
           client_id: string;
-          access_level: "owner" | "viewer";
+          access_level: "owner" | "viewer" | "staff";
           is_active: boolean;
           revoked_at: string | null;
           revoked_by: string | null;

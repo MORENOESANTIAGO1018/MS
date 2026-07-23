@@ -17,6 +17,7 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "check:server-only": "tsx scripts/check-server-only-imports.ts",
+    "db:test:rls": "bash supabase/tests/run-local.sh",
     "verify": "npm run lint && npm run typecheck && npm run check:server-only && npm run test"
   },
   "dependencies": {
