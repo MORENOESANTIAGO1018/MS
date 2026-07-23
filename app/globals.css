@@ -1,0 +1,17 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-serif: "Source Serif 4", Georgia, serif;
+}
+
+body {
+  @apply bg-surface-muted text-slate-900 antialiased;
+}
+
+/* Foco visivel para acessibilidade (WCAG 2.4.7) — nunca remover outline sem substituto */
+:focus-visible {
+  @apply outline outline-2 outline-offset-2 outline-brand-gold;
+}
