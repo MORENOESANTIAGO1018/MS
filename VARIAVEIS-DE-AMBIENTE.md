@@ -68,6 +68,7 @@ seu nível de sensibilidade.
 | `NEXT_PUBLIC_OFFICE_PHONE` / `_WHATSAPP` / `_EMAIL` / `_ADDRESS` / `_HOURS` | não | Dados de contato exibidos no rodapé/institucional |
 | `AUDIT_LOG_RETENTION_DAYS` | não | Retenção de logs (padrão 180) |
 | `NODE_ENV` | não | `development` / `test` / `production` |
+| `MAINTENANCE_MODE` | não | server (`middleware.ts`) | `"true"` redireciona todo tráfego para `/manutencao`, exceto a própria página — liga/desliga via variável de ambiente na Vercel, sem deploy (Fase 15) |
 
 ## Regra para credenciais ausentes durante o desenvolvimento
 

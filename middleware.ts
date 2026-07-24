@@ -18,6 +18,7 @@ const PORTAL_PATH_PREFIXES = [
 ];
 
 const ADMIN_PATH_PREFIX = "/admin";
+const MAINTENANCE_PATH = "/manutencao";
 const IDLE_COOKIE_NAME = "psc_last_activity";
 
 function isProtectedPortalPath(pathname: string): boolean {
@@ -65,6 +66,16 @@ export async function middleware(request: NextRequest) {
 
   let response = NextResponse.next({ request: { headers: requestHeaders } });
   response.headers.set("Content-Security-Policy", csp);
+
+  // Modo de manutenção (Fase 15): liga/desliga via variável de ambiente na
+  // Vercel, sem precisar de deploy. Rewrite (não redirect) para manter a
+  // URL original na barra de endereço do usuário.
+  if (getServerEnv().MAINTENANCE_MODE && pathname !== MAINTENANCE_PATH) {
+    const maintenanceUrl = new URL(MAINTENANCE_PATH, request.url);
+    const rewritten = NextResponse.rewrite(maintenanceUrl, { request: { headers: requestHeaders } });
+    rewritten.headers.set("Content-Security-Policy", csp);
+    return rewritten;
+  }
 
   const needsAuth = isProtectedPortalPath(pathname) || isAdminPath(pathname);
   if (!needsAuth) {

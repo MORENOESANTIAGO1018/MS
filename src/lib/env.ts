@@ -71,6 +71,14 @@ const serverEnvSchema = z.object({
       "application/pdf,image/png,image/jpeg,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     ),
   DOCUMENT_SIGNED_URL_TTL_SECONDS: z.coerce.number().default(300),
+  // Modo de manutenção (Fase 15): quando "true", middleware.ts redireciona
+  // todo tráfego para /manutencao, exceto a própria página. Ativado via
+  // variável de ambiente na Vercel durante uma migração/manutenção
+  // planejada — nunca por código, para poder ligar/desligar sem deploy.
+  MAINTENANCE_MODE: z
+    .string()
+    .optional()
+    .transform((v) => v === "true"),
   NODE_ENV: z
     .enum(["development", "test", "production"])
     .default("development"),
