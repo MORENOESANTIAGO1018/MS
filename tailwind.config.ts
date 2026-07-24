@@ -15,6 +15,9 @@ const config: Config = {
           "navy-light": "#1c3363",
           gold: "#a9862f",
           "gold-light": "#c9a75a",
+          // Mais escuro que `gold`: usar para texto sobre fundo claro
+          // (contraste 5.05:1 vs. 3.42:1 do `gold`, atende WCAG AA para texto normal).
+          "gold-text": "#876b25",
         },
         surface: {
           DEFAULT: "#ffffff",
@@ -23,7 +26,9 @@ const config: Config = {
         },
         status: {
           success: "#1c7d4d",
-          warning: "#b3760b",
+          // Escurecido de #b3760b: o tom original so alcanca 3.8:1 sobre
+          // branco, abaixo do minimo de 4.5:1 do WCAG AA para texto normal.
+          warning: "#8f5e08",
           danger: "#b3261e",
           info: "#1d4c8f",
         },

@@ -39,6 +39,6 @@ supabase/.temp/
 *.tsbuildinfo
 next-env.d.ts
 
-# logs
-logs/
+# logs (raiz apenas — nao casar com paginas como app/admin/logs/)
+/logs/
 *.log

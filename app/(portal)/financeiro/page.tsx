@@ -4,6 +4,7 @@ import { listFinancialEntriesForClient, FINANCIAL_STATUS_LABELS } from "@/module
 import { DownloadReceiptButton } from "@/modules/financial/components/DownloadReceiptButton";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { formatCurrency, formatDate } from "@/lib/format";
 import type { FinancialStatus } from "@/lib/supabase/database.types";
 
@@ -47,11 +48,7 @@ export default async function FinanceiroPage() {
         </div>
       </Card>
 
-      {entries.length === 0 && (
-        <Card>
-          <p className="text-sm text-slate-500">Nenhum lançamento financeiro.</p>
-        </Card>
-      )}
+      {entries.length === 0 && <EmptyState title="Nenhum lançamento financeiro" />}
 
       {entries.map((entry) => (
         <Card key={entry.id}>

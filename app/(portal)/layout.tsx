@@ -16,7 +16,7 @@ export default async function PortalLayout({
       <header className="border-b border-slate-200 bg-surface">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
           <div>
-            <p className="text-xs uppercase tracking-widest text-brand-gold">
+            <p className="text-xs uppercase tracking-widest text-brand-gold-text">
               {env.NEXT_PUBLIC_OFFICE_NAME}
             </p>
             <p className="text-sm font-medium text-slate-900">{client.full_name}</p>

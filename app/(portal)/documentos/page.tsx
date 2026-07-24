@@ -3,6 +3,7 @@ import { getPortalContext } from "@/modules/clients/current-client";
 import { listDocumentsForClient } from "@/modules/documents/queries";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { formatDate } from "@/lib/format";
 import { DocumentUploadForm } from "@/modules/documents/components/DocumentUploadForm";
 import { DownloadDocumentButton } from "@/modules/documents/components/DownloadDocumentButton";
@@ -23,9 +24,10 @@ export default async function DocumentosPage() {
       </Card>
 
       {documents.length === 0 && (
-        <Card>
-          <p className="text-sm text-slate-500">Nenhum documento disponível.</p>
-        </Card>
+        <EmptyState
+          title="Nenhum documento disponível"
+          description="Documentos enviados por você ou pela equipe aparecerão aqui."
+        />
       )}
 
       {documents.map((doc) => (

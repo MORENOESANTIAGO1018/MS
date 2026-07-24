@@ -26,11 +26,11 @@ export default async function AdminLayout({
           <LogoutButton />
         </div>
       </header>
-      <div className="mx-auto flex max-w-7xl gap-6 px-4 py-6">
-        <aside className="w-56 shrink-0">
+      <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 md:flex-row">
+        <aside className="md:w-56 md:shrink-0">
           <AdminNav />
         </aside>
-        <main className="flex-1 space-y-6">{children}</main>
+        <main className="min-w-0 flex-1 space-y-6">{children}</main>
       </div>
     </div>
   );
