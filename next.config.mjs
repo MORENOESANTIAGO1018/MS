@@ -2,15 +2,13 @@
 
 const isProd = process.env.NODE_ENV === "production";
 
-// Content-Security-Policy: sem 'unsafe-inline' para scripts; nonce é aplicado
-// por requisição em middleware.ts. Mantido aqui também como camada estática
-// de defesa (cobre respostas que não passam pelo middleware, ex.: assets).
-const connectSrc = [
-  "'self'",
-  "https://*.supabase.co",
-  "wss://*.supabase.co",
-  "https://api.anthropic.com",
-].join(" ");
+// Content-Security-Policy: sem 'unsafe-inline' para scripts. connect-src é
+// só 'self' porque o navegador nunca fala diretamente com Supabase/Notion/
+// Claude — toda chamada externa passa pelo servidor (Server Actions/Route
+// Handlers), conforme ARQUITETURA.md. Se algum dia um Client Component
+// passar a chamar o Supabase diretamente (ex.: Realtime), esta lista
+// precisa ser revisada e ampliada deliberadamente, nunca por omissão.
+const connectSrc = ["'self'"].join(" ");
 
 const securityHeaders = [
   {

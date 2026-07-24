@@ -20,7 +20,8 @@
   `AUDIT_LOG_RETENTION_DAYS`) e depois arquivados/anonimizados.
 - **Sigilo profissional (Estatuto da OAB, Art. 34/35 e Código de Ética)**: nenhuma
   informação de um cliente é acessível por outro; a equipe só acessa clientes aos quais
-  está formalmente atribuída (`team_assignments`), exceto papel `admin`.
+  está formalmente atribuída (`client_access` com `access_level = 'staff'`), exceto
+  papel `admin`.
 
 ## 2. Dados sensíveis — tratamento específico
 
@@ -45,7 +46,7 @@ observabilidade. A redação:
 - `audit_logs.before/after` passam pela mesma função (`redact_sensitive_jsonb`, em
   SQL, espelhando a lista de campos) antes do INSERT — defesa em profundidade mesmo se
   o código da aplicação falhar.
-- Testado em `tests/unit/logger.redaction.test.ts` com casos adversariais (CPF com e
+- Testado em `tests/unit/redact.test.ts` com casos adversariais (CPF com e
   sem máscara, aninhado em objetos, em arrays).
 
 ## 4. Segredos — onde cada um pode viver
@@ -57,21 +58,23 @@ observabilidade. A redação:
 | `SUPABASE_SERVICE_ROLE_KEY` | ❌ | ❌ | ✅ (import restrito) | ❌ |
 | `NOTION_TOKEN` | ❌ | ❌ | ✅ | ❌ (n8n chama nosso endpoint, não a Notion direto) |
 | `ANTHROPIC_API_KEY` | ❌ | ❌ | ✅ | ❌ |
-| `N8N_WEBHOOK_SECRET` | ❌ | ❌ | ✅ (valida HMAC recebido) | ✅ (assina requisições) |
+| `N8N_WEBHOOK_SECRET` | ❌ | ❌ | ✅ (valida o cabeçalho `x-n8n-secret` recebido) | ✅ (envia o cabeçalho) |
+| `N8N_BASE_URL` / `N8N_TRIGGER_TOKEN` | ❌ | ❌ | ✅ (`notifyN8n`, sentido portal → n8n, opcional — ver Fase 11) | ✅ (valida `x-portal-token` recebido) |
 
 Reforço automatizado: regra de ESLint `no-restricted-imports` bane
-`@/lib/server/*` fora de `app/api/**/route.ts` e `src/modules/**/*.actions.ts`;
+`@/lib/server/*` fora de `app/api/**/route.ts` e `src/**/*actions.server.ts`;
 CI roda `scripts/check-server-only-imports.ts` que falha o build se detectar o import
-em um arquivo que não comece com `"use server"`/não seja Route Handler, e falha
-também se `NEXT_PUBLIC_` prefixar qualquer variável da lista acima.
+fora desses locais (ou dentro de um Client Component), e falha também se
+`process.env.<SEGREDO>` for referenciado fora deles.
 
 ## 5. Cabeçalhos e transporte
 
 - **HTTPS obrigatório** (Vercel força TLS; HSTS com `max-age=63072000; includeSubDomains; preload`).
-- **CSP** (ver `next.config.mjs` / `middleware.ts`): `default-src 'self'`; `img-src
-  'self' data: https://*.supabase.co`; `connect-src 'self' https://*.supabase.co
-  https://api.anthropic.com`; sem `unsafe-inline` para scripts (nonce por requisição);
-  `frame-ancestors 'none'`.
+- **CSP** (ver `next.config.mjs`): `default-src 'self'`; `img-src 'self' data:
+  https://*.supabase.co`; `connect-src 'self'` (o navegador nunca fala diretamente com
+  Supabase/Notion/Claude — toda chamada externa é mediada pelo servidor, então não há
+  necessidade de abrir `connect-src` para esses domínios); sem `unsafe-inline` para
+  scripts; `frame-ancestors 'none'`.
 - `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy:
   strict-origin-when-cross-origin`, `Permissions-Policy` restritiva.
 - Cookies de sessão: `httpOnly`, `secure`, `sameSite=lax` (padrão do
@@ -87,16 +90,21 @@ também se `NEXT_PUBLIC_` prefixar qualquer variável da lista acima.
   input do usuário.
 - **Validação de entrada**: todo Server Action/Route Handler valida `body`/`params`
   com **Zod** antes de tocar no banco (`schema.ts` por módulo).
-- **Rate limiting**: middleware com limitador (token bucket em Supabase/Upstash-like
-  table `rate_limits` ou Vercel Edge Config) em login, OTP, recuperação de senha e
-  upload de documento.
+- **Rate limiting**: tabela própria `auth_rate_limits` no Postgres (não em memória —
+  funções serverless da Vercel não compartilham memória entre invocações), verificada
+  em `checkRateLimit()` antes de login, ativação de conta e recuperação de senha.
+  Chaveado por e-mail/identificador do alvo (não por IP), então não pode ser burlado
+  falsificando `X-Forwarded-For`.
 - **Enumeração de usuários**: mensagens de erro de login/recuperação são genéricas
-  (“Se o e-mail existir, enviaremos instruções”), tempo de resposta normalizado.
-- **URLs assinadas**: todo acesso a arquivo do Storage usa
-  `createSignedUrl(path, expiresInSeconds)` (padrão 5 minutos), nunca bucket público.
-- **Mascaramento de dados**: CPF exibido como `***.***.**last4`; comprovantes
-  financeiros exigem clique explícito ("Ver comprovante") que gera a URL assinada sob
-  demanda (e grava `access_logs`).
+  (“Se o e-mail existir, enviaremos instruções”), independente do e-mail existir ou não.
+- **URLs assinadas**: todo acesso a arquivo do Storage (documentos e comprovantes
+  financeiros) usa `createSignedUrl(path, DOCUMENT_SIGNED_URL_TTL_SECONDS)` (padrão 5
+  minutos), nunca bucket público — gerada sob demanda a partir de um clique explícito
+  do usuário, sempre registrando `access_logs`.
+- **Dado sensível fora do portal**: CPF/RG não são exibidos em nenhuma tela do portal
+  do cliente hoje (`document_last4` existe no schema para uma futura exibição parcial
+  controlada, mas não está conectado a nenhuma UI ainda) — a forma mais segura de tratar
+  um dado é não expô-lo quando não há necessidade funcional comprovada.
 
 ## 7. Regra de publicação humana (inegociável #10)
 
@@ -119,5 +127,5 @@ também se `NEXT_PUBLIC_` prefixar qualquer variável da lista acima.
 
 ## 9. `SECURITY-REPORT.md`
 
-Um relatório específico de segurança (achados, mitigdenações e resultado de
-`npm audit`/`pnpm audit`) é gerado na Fase 13 e mantido em `SECURITY-REPORT.md`.
+Um relatório específico de segurança (achados, mitigações e resultado de
+`npm audit`) é gerado na Fase 13 e mantido em `SECURITY-REPORT.md`.
