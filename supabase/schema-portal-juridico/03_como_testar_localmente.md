@@ -32,16 +32,22 @@ nunca rodar contra um projeto Supabase real (ele já tem `auth.*` de verdade).
 
 ## Nota sobre o design de `team_members` vs. o schema já existente no repositório
 
-O schema já aplicado em `supabase/migrations/` (usado pela aplicação Next.js
-deste repositório) resolve "quem é da equipe e a quem tem acesso" com uma
-única tabela genérica (`client_access`, com `access_level` podendo ser
-`owner`/`viewer`/`staff`), para não introduzir uma 19ª tabela além das 18
-pedidas originalmente naquele projeto.
+**Correção (pós-reconciliação):** a afirmação original desta seção — de que
+o schema já aplicado não teria uma tabela `team_members` separada — estava
+errada. `supabase/migrations/0002_core_tables.sql` já cria `team_members`
+como tabela própria (colunas `oab`, `"position"`, `practice_areas`), distinta
+de `client_access`. O que o schema real faz de fato é usar `client_access`
+como tabela única de **acesso** (cobrindo tanto o próprio cliente quanto um
+membro da equipe formalmente atribuído, via `access_level`
+`owner`/`viewer`/`staff`) — sem uma coluna `clients.user_id` direta; e
+`team_members` como **cadastro** da equipe, sem relação de atribuição
+embutida nele (a atribuição staff→cliente é uma linha em `client_access`).
 
-Esta tarefa pediu explicitamente `team_members` **e** `client_access` como
-tabelas distintas — por isso este schema separa as duas: `team_members` é o
-cadastro da equipe interna, e `client_access` vira uma tabela de atribuição
-pura (liga um `team_member_id` a um `client_id`), enquanto o vínculo do
-próprio cliente com seu login passa a ser direto (`clients.user_id`, único).
-Isso é mais explícito para este caso de uso e não altera nada do aplicativo
-já em produção neste repositório — este é um entregável novo e independente.
+Este schema (`01_schema.sql`) usa um design diferente: `team_members` cadastro
++ `client_access` como tabela de atribuição pura (`team_member_id` →
+`client_id`), com `clients.user_id` ligando o cliente diretamente ao seu
+login. É um entregável novo e independente, que não altera nada do
+aplicativo já em produção neste repositório — mas não é o mesmo modelo do
+schema real, e as diferenças completas estão documentadas no relatório de
+reconciliação (ver `supabase/reference/README.md` e a migration
+`0011_message_immutability_and_access_scoping.sql`).
