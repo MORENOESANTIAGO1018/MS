@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { getPortalContext } from "@/modules/clients/current-client";
 import { listMessagesForClient } from "@/modules/messages/queries";
-import { markMessagesAsRead } from "@/modules/messages/actions";
+import { markMessagesAsRead } from "@/modules/messages/actions.server";
 import { MessageThread } from "@/modules/messages/components/MessageThread";
 import { Card } from "@/components/ui/Card";
 

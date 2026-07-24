@@ -56,6 +56,8 @@ const serverEnvSchema = z.object({
   ANTHROPIC_API_KEY: z.string().min(1).optional(),
   ANTHROPIC_MODEL: z.string().default("claude-sonnet-5"),
   N8N_WEBHOOK_SECRET: z.string().optional(),
+  N8N_BASE_URL: z.string().url().optional(),
+  N8N_TRIGGER_TOKEN: z.string().optional(),
   ACTIVATION_CODE_PEPPER: z.string().default("dev-only-insecure-pepper"),
   ACTIVATION_CODE_TTL_HOURS: z.coerce.number().default(72),
   SESSION_IDLE_TIMEOUT_MIN: z.coerce.number().default(30),

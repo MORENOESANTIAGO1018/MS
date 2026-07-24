@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { notifyDocumentPublished, notifyProcessUpdatePublished } from "./publish-notify.actions.server";
 import {
   assignStaffSchema,
   createClientSchema,
@@ -124,19 +125,32 @@ export async function createProcessUpdate(formData: FormData): Promise<ActionRes
   const supabase = await createSupabaseServerClient();
   const { publishToPortal } = parsed.data;
 
-  const { error } = await supabase.from("process_updates").insert({
-    process_id: parsed.data.processId,
-    client_id: parsed.data.clientId,
-    update_date: parsed.data.updateDate,
-    plain_language_summary: parsed.data.plainLanguageSummary,
-    classification: parsed.data.classification || null,
-    original_text: parsed.data.originalText || null,
-    reviewed_by_lawyer: true,
-    is_visible_to_client: publishToPortal,
-    published_at: publishToPortal ? new Date().toISOString() : null,
-  });
+  const { data: inserted, error } = await supabase
+    .from("process_updates")
+    .insert({
+      process_id: parsed.data.processId,
+      client_id: parsed.data.clientId,
+      update_date: parsed.data.updateDate,
+      plain_language_summary: parsed.data.plainLanguageSummary,
+      classification: parsed.data.classification || null,
+      original_text: parsed.data.originalText || null,
+      reviewed_by_lawyer: true,
+      is_visible_to_client: publishToPortal,
+      published_at: publishToPortal ? new Date().toISOString() : null,
+    })
+    .select("id")
+    .single();
 
   if (error) return { success: false, message: "Não foi possível registrar o andamento." };
+
+  if (publishToPortal && inserted) {
+    await notifyProcessUpdatePublished({
+      processUpdateId: inserted.id,
+      processId: parsed.data.processId,
+      clientId: parsed.data.clientId,
+    });
+  }
+
   revalidatePath("/admin/andamentos");
   revalidatePath("/andamentos");
   return { success: true, message: "Andamento registrado." };
@@ -288,6 +302,13 @@ export async function toggleDocumentVisibility(formData: FormData): Promise<Acti
   }
 
   const supabase = await createSupabaseServerClient();
+
+  const { data: before } = await supabase
+    .from("documents")
+    .select("client_id, name, is_visible_to_client")
+    .eq("id", parsed.data.documentId)
+    .maybeSingle();
+
   const { error } = await supabase
     .from("documents")
     .update({
@@ -298,6 +319,15 @@ export async function toggleDocumentVisibility(formData: FormData): Promise<Acti
     .eq("id", parsed.data.documentId);
 
   if (error) return { success: false, message: "Não foi possível atualizar o documento." };
+
+  if (before && !before.is_visible_to_client && parsed.data.isVisibleToClient) {
+    await notifyDocumentPublished({
+      documentId: parsed.data.documentId,
+      clientId: before.client_id,
+      name: before.name,
+    });
+  }
+
   revalidatePath("/admin/documentos");
   return { success: true, message: "Documento atualizado." };
 }

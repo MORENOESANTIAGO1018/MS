@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import { sendMessage } from "@/modules/messages/actions";
+import { sendMessage } from "@/modules/messages/actions.server";
 import { Button } from "@/components/ui/Button";
 import { formatDateTime } from "@/lib/format";
 

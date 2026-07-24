@@ -37,9 +37,9 @@ seu nível de sensibilidade.
 
 | Variável | Sensível | Onde é usada | Descrição |
 |---|---|---|---|
-| `N8N_WEBHOOK_SECRET` | **sim** | server (`app/api/webhooks/n8n/**`) | Segredo compartilhado para validar HMAC das chamadas do n8n |
-| `N8N_BASE_URL` | não | server (opcional, se o portal disparar workflows) | URL da instância n8n |
-| `N8N_TRIGGER_TOKEN` | sim | server | Token para o portal chamar webhooks do n8n (sentido inverso) |
+| `N8N_WEBHOOK_SECRET` | **sim** | server (rotas em `app/api/notion/sync`, `app/api/notifications/**`, `app/api/reports/**`, `app/api/maintenance/**`) | Segredo compartilhado que autentica as chamadas n8n → portal (header `x-n8n-secret`, ver `src/lib/server/webhook-auth.ts`) |
+| `N8N_BASE_URL` | não (opcional) | server (`src/lib/server/n8n-notify.ts`) | URL da instância n8n. Se ausente, `notifyN8n()` apenas loga e não faz nada (mock silencioso) — nenhuma ação principal falha por causa disso |
+| `N8N_TRIGGER_TOKEN` | não (opcional, mas necessário junto com `N8N_BASE_URL` para os eventos transacionais funcionarem de fato) | server | Token que o portal envia (header `x-portal-token`) ao chamar webhooks do n8n (sentido portal → n8n) — ver `automations/n8n/README.md` |
 
 ## Autenticação e sessão
 

@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getClaudeAdapter } from "@/lib/server/claude";
+import { notifyN8n } from "@/lib/server/n8n-notify";
+import { getClientContact } from "@/lib/server/client-contact";
 import { logger } from "@/lib/logger";
 import {
   approveAiSummarySchema,
@@ -112,7 +114,9 @@ export async function approveAiSummary(formData: FormData): Promise<ActionResult
 
   const { data: summary } = await supabase
     .from("ai_summaries")
-    .select("id, process_update_id, plain_language_summary, classification, possible_deadline, status")
+    .select(
+      "id, process_update_id, client_id, plain_language_summary, classification, possible_deadline, status",
+    )
     .eq("id", parsed.data.summaryId)
     .maybeSingle();
 
@@ -170,6 +174,16 @@ export async function approveAiSummary(formData: FormData): Promise<ActionResult
       success: false,
       message: "Resumo aprovado, mas houve falha ao atualizar o andamento. Verifique manualmente.",
     };
+  }
+
+  if (publishToPortal) {
+    const contact = await getClientContact(summary.client_id);
+    await notifyN8n("andamento-publicado", {
+      processUpdateId: summary.process_update_id,
+      clientId: summary.client_id,
+      clientEmail: contact?.email ?? null,
+      clientName: contact?.fullName ?? null,
+    });
   }
 
   revalidatePath("/admin/resumos-ia");

@@ -10,6 +10,7 @@ import {
 import { checkRateLimit, resetRateLimit } from "@/lib/server/rate-limit";
 import { recordAccessLog } from "@/lib/server/access-log";
 import { recordAuditLog } from "@/lib/server/audit-log";
+import { notifyN8n } from "@/lib/server/n8n-notify";
 import {
   generateActivationCode,
   hashActivationCode,
@@ -274,10 +275,18 @@ export async function createInvite(formData: FormData): Promise<CreateInviteResu
     after: { clientId, email, fullName },
   });
 
-  // O codigo em claro (`code`) e retornado apenas para o fluxo administrativo
-  // exibir/enviar uma unica vez (e-mail via workflow n8n "criacao de
-  // convite" — ver automations/n8n/02-criacao-de-convite.json). Ele nunca e
-  // persistido em texto claro.
+  // O codigo em claro (`code`) e enviado uma unica vez ao workflow n8n
+  // "02-criacao-de-convite" (automations/n8n/02-criacao-de-convite.json),
+  // que o entrega ao cliente por e-mail. Nunca e persistido em texto claro
+  // no Supabase — so o hash (activation_code_hash) fica gravado.
+  await notifyN8n("convite-criado", {
+    clientAccessId: accessRow.id,
+    clientId,
+    email,
+    fullName,
+    code,
+  });
+
   return {
     success: true,
     message: `Convite criado. Código de ativação: ${code}`,
@@ -300,6 +309,12 @@ export async function resendActivationCode(
   const code = generateActivationCode();
   const codeHash = hashActivationCode(code);
 
+  const { data: accessRow } = await admin
+    .from("client_access")
+    .select("client_id, profile_id")
+    .eq("id", parsed.data.clientAccessId)
+    .maybeSingle();
+
   const { error } = await admin
     .from("client_access")
     .update({
@@ -311,6 +326,23 @@ export async function resendActivationCode(
 
   if (error) {
     return { success: false, message: "Não foi possível reenviar o código." };
+  }
+
+  if (accessRow) {
+    const { data: profile } = await admin
+      .from("profiles")
+      .select("email, full_name")
+      .eq("id", accessRow.profile_id)
+      .maybeSingle();
+
+    // Workflow n8n "03-reenvio-codigo-ativacao".
+    await notifyN8n("codigo-reenviado", {
+      clientAccessId: parsed.data.clientAccessId,
+      clientId: accessRow.client_id,
+      email: profile?.email ?? null,
+      fullName: profile?.full_name ?? null,
+      code,
+    });
   }
 
   return {

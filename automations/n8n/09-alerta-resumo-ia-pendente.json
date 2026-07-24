@@ -1,0 +1,74 @@
+{
+  "name": "09 - Alerta de resumos de IA pendentes",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": { "interval": [{ "field": "cronExpression", "expression": "0 9 * * *" }] }
+      },
+      "name": "Todo dia as 09:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.APP_BASE_URL}}/api/notifications/ai-summary-digest",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "x-n8n-secret", "value": "={{$env.N8N_WEBHOOK_SECRET}}" }]
+        },
+        "options": { "timeout": 60000 }
+      },
+      "name": "Chamar /api/notifications/ai-summary-digest",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "leftValue": "={{$json.notified}}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ]
+        }
+      },
+      "name": "Gerou notificacao nova?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{$env.SMTP_FROM}}",
+        "toEmail": "={{$env.OFFICE_STAFF_EMAIL}}",
+        "subject": "Resumos de IA aguardando revisão",
+        "emailFormat": "text",
+        "text": "=Há {{$json.pendingCount}} resumo(s) sugerido(s) pela IA aguardando revisão humana em /admin/resumos-ia. Nenhum resumo é publicado sem aprovação explícita da equipe."
+      },
+      "name": "Enviar e-mail para a equipe",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [900, 220],
+      "credentials": { "smtp": { "id": "SMTP_CREDENCIAL_ID", "name": "SMTP escritorio" } }
+    }
+  ],
+  "connections": {
+    "Todo dia as 09:00": {
+      "main": [[{ "node": "Chamar /api/notifications/ai-summary-digest", "type": "main", "index": 0 }]]
+    },
+    "Chamar /api/notifications/ai-summary-digest": {
+      "main": [[{ "node": "Gerou notificacao nova?", "type": "main", "index": 0 }]]
+    },
+    "Gerou notificacao nova?": {
+      "main": [[{ "node": "Enviar e-mail para a equipe", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" }
+}

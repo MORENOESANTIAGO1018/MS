@@ -1,0 +1,53 @@
+{
+  "name": "11 - Relatorio diario para a equipe",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": { "interval": [{ "field": "cronExpression", "expression": "0 18 * * 1-5" }] }
+      },
+      "name": "Dias uteis as 18:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{$env.APP_BASE_URL}}/api/reports/daily-digest",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "x-n8n-secret", "value": "={{$env.N8N_WEBHOOK_SECRET}}" }]
+        },
+        "options": { "timeout": 60000 }
+      },
+      "name": "Chamar /api/reports/daily-digest",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{$env.SMTP_FROM}}",
+        "toEmail": "={{$env.OFFICE_STAFF_EMAIL}}",
+        "subject": "Relatório diário — Portal do Cliente",
+        "emailFormat": "text",
+        "text": "=Clientes ativos: {{$json.activeClients}}/{{$json.totalClients}}\nProcessos ativos: {{$json.activeProcesses}}/{{$json.totalProcesses}}\nPrazos nos próximos 7 dias: {{$json.upcomingDeadlines}}\nAudiências nos próximos 7 dias: {{$json.upcomingHearings}}\nLançamentos financeiros vencidos: {{$json.overdueFinancial}}\nDocumentos aguardando revisão: {{$json.pendingDocuments}}\nResumos de IA aguardando revisão: {{$json.pendingAiSummaries}}\n\nGerado em {{$json.generatedAt}}."
+      },
+      "name": "Enviar e-mail para a equipe",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [680, 300],
+      "credentials": { "smtp": { "id": "SMTP_CREDENCIAL_ID", "name": "SMTP escritorio" } }
+    }
+  ],
+  "connections": {
+    "Dias uteis as 18:00": {
+      "main": [[{ "node": "Chamar /api/reports/daily-digest", "type": "main", "index": 0 }]]
+    },
+    "Chamar /api/reports/daily-digest": {
+      "main": [[{ "node": "Enviar e-mail para a equipe", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" }
+}

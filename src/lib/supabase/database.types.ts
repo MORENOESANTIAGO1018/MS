@@ -180,6 +180,7 @@ export type Database = {
           due_date: string;
           priority: string | null;
           status: string;
+          client_notified: boolean;
           notion_page_id: string | null;
           is_visible_to_client: boolean;
           created_by: string | null;

@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { scanDocumentBuffer } from "@/lib/server/antivirus";
 import { recordAccessLog } from "@/lib/server/access-log";
+import { notifyN8n } from "@/lib/server/n8n-notify";
+import { getClientContact } from "@/lib/server/client-contact";
 import { logger } from "@/lib/logger";
 import {
   getAllowedMimeTypes,
@@ -87,25 +89,40 @@ async function performUpload(params: PerformUploadParams): Promise<UploadDocumen
     return { success: false, message: "Não foi possível enviar o arquivo." };
   }
 
-  const { error: insertError } = await supabase.from("documents").insert({
-    client_id: clientId,
-    process_id: processId || null,
-    name,
-    category: category || null,
-    storage_path: storagePath,
-    uploaded_by_role: profile?.role === "client" ? "client" : "staff",
-    size_bytes: file.size,
-    mime_type: file.type,
-    is_confidential: isConfidential,
-    is_visible_to_client: isVisibleToClient,
-    reviewed,
-  });
+  const { data: insertedDocument, error: insertError } = await supabase
+    .from("documents")
+    .insert({
+      client_id: clientId,
+      process_id: processId || null,
+      name,
+      category: category || null,
+      storage_path: storagePath,
+      uploaded_by_role: profile?.role === "client" ? "client" : "staff",
+      size_bytes: file.size,
+      mime_type: file.type,
+      is_confidential: isConfidential,
+      is_visible_to_client: isVisibleToClient,
+      reviewed,
+    })
+    .select("id")
+    .single();
 
   if (insertError) {
     logger.error("Falha ao registrar documento", { error: insertError.message });
     // Tenta remover o arquivo orfao do storage, mas nao falha a resposta por causa disso.
     await supabase.storage.from("documents").remove([storagePath]);
     return { success: false, message: "Não foi possível registrar o documento." };
+  }
+
+  if (isVisibleToClient && insertedDocument) {
+    const contact = await getClientContact(clientId);
+    await notifyN8n("documento-publicado", {
+      documentId: insertedDocument.id,
+      clientId,
+      clientEmail: contact?.email ?? null,
+      clientName: contact?.fullName ?? null,
+      name,
+    });
   }
 
   await recordAccessLog({

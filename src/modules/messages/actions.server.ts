@@ -2,6 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { notifyN8n } from "@/lib/server/n8n-notify";
+import { getClientContact } from "@/lib/server/client-contact";
+import { getPublicEnv } from "@/lib/env";
 import { sendMessageSchema } from "./schema";
 
 export interface SendMessageResult {
@@ -39,16 +42,33 @@ export async function sendMessage(formData: FormData): Promise<SendMessageResult
     .eq("id", user.id)
     .maybeSingle();
 
+  const senderRole = profile?.role === "client" ? "client" : "staff";
+
   const { error } = await supabase.from("messages").insert({
     client_id: parsed.data.clientId,
     sender_profile_id: user.id,
-    sender_role: profile?.role === "client" ? "client" : "staff",
+    sender_role: senderRole,
     body: parsed.data.body,
   });
 
   if (error) {
     return { success: false, message: "Não foi possível enviar a mensagem." };
   }
+
+  // Notifica a outra ponta (workflow n8n "10-nova-mensagem"): se quem
+  // enviou foi o cliente, avisa o e-mail geral do escritório; se foi a
+  // equipe, avisa o e-mail do cliente. Nenhum dos dois exige o n8n consultar
+  // o banco diretamente.
+  const recipientEmail =
+    senderRole === "client"
+      ? getPublicEnv().NEXT_PUBLIC_OFFICE_EMAIL || null
+      : (await getClientContact(parsed.data.clientId))?.email ?? null;
+
+  await notifyN8n("nova-mensagem", {
+    clientId: parsed.data.clientId,
+    senderRole,
+    recipientEmail,
+  });
 
   revalidatePath("/mensagens");
   return { success: true, message: "Mensagem enviada." };
