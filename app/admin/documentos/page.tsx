@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { listAllDocuments, listAllClients } from "@/modules/admin/queries";
 import { DocumentReviewForm } from "@/modules/admin/components/DocumentReviewForm";
 import { DownloadDocumentButton } from "@/modules/documents/components/DownloadDocumentButton";
-import { Card } from "@/components/ui/Card";
+import { StaffUploadDocumentForm } from "@/modules/documents/components/StaffUploadDocumentForm";
+import { Card, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { formatDate } from "@/lib/format";
 
@@ -15,6 +16,15 @@ export default async function AdminDocumentosPage() {
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-serif font-semibold text-brand-navy">Documentos</h1>
+
+      <Card>
+        <CardTitle>Enviar documento para um cliente</CardTitle>
+        <p className="mb-3 mt-1 text-xs text-slate-500">
+          Um documento sigiloso nunca fica visível ao cliente. A publicação no portal exige marcar
+          a caixa explicitamente (regra inegociável).
+        </p>
+        <StaffUploadDocumentForm clients={clients.map((c) => ({ id: c.id, full_name: c.full_name }))} />
+      </Card>
 
       <div className="space-y-3">
         {documents.map((doc) => (
@@ -40,6 +50,7 @@ export default async function AdminDocumentosPage() {
                 documentId={doc.id}
                 isVisibleToClient={doc.is_visible_to_client}
                 reviewed={doc.reviewed}
+                isConfidential={doc.is_confidential}
               />
             </div>
           </Card>

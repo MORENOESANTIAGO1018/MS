@@ -7,22 +7,31 @@ export function DocumentReviewForm({
   documentId,
   isVisibleToClient,
   reviewed,
+  isConfidential,
 }: {
   documentId: string;
   isVisibleToClient: boolean;
   reviewed: boolean;
+  isConfidential: boolean;
 }) {
   const [isPending, startTransition] = useTransition();
 
-  function toggle(field: "isVisibleToClient" | "reviewed", current: boolean) {
+  function toggle(field: "isVisibleToClient" | "reviewed" | "isConfidential", current: boolean) {
     const nextValue = !current;
-    const nextIsVisibleToClient = field === "isVisibleToClient" ? nextValue : isVisibleToClient;
+    const nextIsVisibleToClient =
+      field === "isVisibleToClient"
+        ? nextValue
+        : field === "isConfidential" && nextValue
+          ? false
+          : isVisibleToClient;
     const nextReviewed = field === "reviewed" ? nextValue : reviewed;
+    const nextIsConfidential = field === "isConfidential" ? nextValue : isConfidential;
 
     const formData = new FormData();
     formData.set("documentId", documentId);
     formData.set("isVisibleToClient", nextIsVisibleToClient ? "on" : "");
     formData.set("reviewed", nextReviewed ? "on" : "");
+    formData.set("isConfidential", nextIsConfidential ? "on" : "");
     startTransition(async () => {
       await toggleDocumentVisibility(formData);
     });
@@ -47,6 +56,15 @@ export function DocumentReviewForm({
           onChange={() => toggle("isVisibleToClient", isVisibleToClient)}
         />
         Visível no portal
+      </label>
+      <label className="flex items-center gap-1">
+        <input
+          type="checkbox"
+          checked={isConfidential}
+          disabled={isPending}
+          onChange={() => toggle("isConfidential", isConfidential)}
+        />
+        Sigiloso
       </label>
     </div>
   );

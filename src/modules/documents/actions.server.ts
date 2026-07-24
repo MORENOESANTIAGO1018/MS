@@ -8,6 +8,7 @@ import { logger } from "@/lib/logger";
 import {
   getAllowedMimeTypes,
   getMaxDocumentSizeBytes,
+  staffUploadDocumentMetadataSchema,
   uploadDocumentMetadataSchema,
 } from "./schema";
 
@@ -16,30 +17,20 @@ export interface UploadDocumentResult {
   message: string;
 }
 
-/**
- * Upload de documento pelo cliente (ou pela equipe). Usa o cliente Supabase
- * no contexto do usuario (RLS de storage.objects + public.documents ja
- * restringem por client_id — ver supabase/migrations/0009_storage.sql).
- * Validacoes de tamanho/extensao/antivirus acontecem antes do upload.
- */
-export async function uploadDocument(formData: FormData): Promise<UploadDocumentResult> {
-  const file = formData.get("file");
-  if (!(file instanceof File)) {
-    return { success: false, message: "Selecione um arquivo para enviar." };
-  }
+interface PerformUploadParams {
+  file: File;
+  clientId: string;
+  processId: string | null;
+  name: string;
+  category: string | null;
+  isConfidential: boolean;
+  isVisibleToClient: boolean;
+  reviewed: boolean;
+  revalidatePaths: string[];
+}
 
-  const parsedMeta = uploadDocumentMetadataSchema.safeParse({
-    clientId: formData.get("clientId"),
-    processId: formData.get("processId") ?? "",
-    name: formData.get("name") || file.name,
-  });
-
-  if (!parsedMeta.success) {
-    return {
-      success: false,
-      message: parsedMeta.error.issues[0]?.message ?? "Dados inválidos.",
-    };
-  }
+async function performUpload(params: PerformUploadParams): Promise<UploadDocumentResult> {
+  const { file } = params;
 
   const maxSize = getMaxDocumentSizeBytes();
   if (file.size > maxSize) {
@@ -82,7 +73,8 @@ export async function uploadDocument(formData: FormData): Promise<UploadDocument
     .eq("id", user.id)
     .maybeSingle();
 
-  const { clientId, processId, name } = parsedMeta.data;
+  const { clientId, processId, name, category, isConfidential, isVisibleToClient, reviewed } =
+    params;
   const safeFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
   const storagePath = `clients/${clientId}/${crypto.randomUUID()}-${safeFileName}`;
 
@@ -99,10 +91,14 @@ export async function uploadDocument(formData: FormData): Promise<UploadDocument
     client_id: clientId,
     process_id: processId || null,
     name,
+    category: category || null,
     storage_path: storagePath,
     uploaded_by_role: profile?.role === "client" ? "client" : "staff",
     size_bytes: file.size,
     mime_type: file.type,
+    is_confidential: isConfidential,
+    is_visible_to_client: isVisibleToClient,
+    reviewed,
   });
 
   if (insertError) {
@@ -119,6 +115,93 @@ export async function uploadDocument(formData: FormData): Promise<UploadDocument
     resourceType: "documents",
   });
 
-  revalidatePath("/documentos");
+  for (const path of params.revalidatePaths) revalidatePath(path);
   return { success: true, message: "Documento enviado com sucesso." };
+}
+
+/**
+ * Upload de documento pelo proprio cliente. Sempre entra como nao revisado
+ * e nao visivel/nao confidencial ate que a equipe classifique — ver
+ * DocumentReviewForm e toggleDocumentVisibility em modules/admin/actions.ts.
+ */
+export async function uploadDocument(formData: FormData): Promise<UploadDocumentResult> {
+  const file = formData.get("file");
+  if (!(file instanceof File)) {
+    return { success: false, message: "Selecione um arquivo para enviar." };
+  }
+
+  const parsedMeta = uploadDocumentMetadataSchema.safeParse({
+    clientId: formData.get("clientId"),
+    processId: formData.get("processId") ?? "",
+    name: formData.get("name") || file.name,
+    category: formData.get("category") ?? "",
+  });
+
+  if (!parsedMeta.success) {
+    return {
+      success: false,
+      message: parsedMeta.error.issues[0]?.message ?? "Dados inválidos.",
+    };
+  }
+
+  return performUpload({
+    file,
+    clientId: parsedMeta.data.clientId,
+    processId: parsedMeta.data.processId || null,
+    name: parsedMeta.data.name,
+    category: parsedMeta.data.category || null,
+    isConfidential: false,
+    isVisibleToClient: false,
+    reviewed: false,
+    revalidatePaths: ["/documentos", "/admin/documentos"],
+  });
+}
+
+/**
+ * Upload feito pela equipe diretamente na pasta de um cliente. Diferente do
+ * upload do cliente, aqui a equipe decide explicitamente, no momento do
+ * envio, se o documento é sigiloso e se já deve ficar visível no portal —
+ * nunca um valor implícito (regra inegociável #8/#10).
+ */
+export async function uploadDocumentAsStaff(formData: FormData): Promise<UploadDocumentResult> {
+  const file = formData.get("file");
+  if (!(file instanceof File)) {
+    return { success: false, message: "Selecione um arquivo para enviar." };
+  }
+
+  const parsedMeta = staffUploadDocumentMetadataSchema.safeParse({
+    clientId: formData.get("clientId"),
+    processId: formData.get("processId") ?? "",
+    name: formData.get("name") || file.name,
+    category: formData.get("category") ?? "",
+    isConfidential: formData.get("isConfidential") === "on",
+    publishToPortal: formData.get("publishToPortal") === "on",
+  });
+
+  if (!parsedMeta.success) {
+    return {
+      success: false,
+      message: parsedMeta.error.issues[0]?.message ?? "Dados inválidos.",
+    };
+  }
+
+  const { isConfidential, publishToPortal } = parsedMeta.data;
+  if (isConfidential && publishToPortal) {
+    return {
+      success: false,
+      message: "Um documento sigiloso não pode ser publicado no portal ao mesmo tempo.",
+    };
+  }
+
+  return performUpload({
+    file,
+    clientId: parsedMeta.data.clientId,
+    processId: parsedMeta.data.processId || null,
+    name: parsedMeta.data.name,
+    category: parsedMeta.data.category || null,
+    isConfidential,
+    isVisibleToClient: publishToPortal,
+    reviewed: true,
+    revalidatePaths: ["/admin/documentos", "/documentos"],
+  });
 }

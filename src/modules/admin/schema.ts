@@ -82,6 +82,7 @@ export const toggleDocumentVisibilitySchema = z.object({
   documentId: z.string().uuid(),
   isVisibleToClient: z.coerce.boolean(),
   reviewed: z.coerce.boolean(),
+  isConfidential: z.coerce.boolean(),
 });
 
 export const assignStaffSchema = z.object({

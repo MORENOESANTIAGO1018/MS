@@ -2,6 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { uploadDocument } from "@/modules/documents/actions.server";
+import { DOCUMENT_CATEGORIES } from "@/modules/documents/schema";
 import { Button } from "@/components/ui/Button";
 
 export function DocumentUploadForm({ clientId }: { clientId: string }) {
@@ -38,6 +39,23 @@ export function DocumentUploadForm({ clientId }: { clientId: string }) {
           accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
           className="mt-1 block w-full text-sm"
         />
+      </div>
+      <div>
+        <label htmlFor="category" className="block text-xs font-medium text-slate-600">
+          Categoria
+        </label>
+        <select
+          id="category"
+          name="category"
+          className="mt-1 rounded-lg border border-slate-300 px-3 py-2 text-sm"
+        >
+          <option value="">Selecione (opcional)</option>
+          {DOCUMENT_CATEGORIES.map((category) => (
+            <option key={category} value={category}>
+              {category}
+            </option>
+          ))}
+        </select>
       </div>
       <Button type="submit" disabled={isPending} variant="secondary">
         {isPending ? "Enviando..." : "Enviar"}

@@ -276,8 +276,16 @@ export async function toggleDocumentVisibility(formData: FormData): Promise<Acti
     documentId: formData.get("documentId"),
     isVisibleToClient: formData.get("isVisibleToClient") === "on",
     reviewed: formData.get("reviewed") === "on",
+    isConfidential: formData.get("isConfidential") === "on",
   });
   if (!parsed.success) return { success: false, message: firstIssue(parsed.error) };
+
+  if (parsed.data.isConfidential && parsed.data.isVisibleToClient) {
+    return {
+      success: false,
+      message: "Um documento sigiloso não pode ficar visível ao cliente ao mesmo tempo.",
+    };
+  }
 
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase
@@ -285,6 +293,7 @@ export async function toggleDocumentVisibility(formData: FormData): Promise<Acti
     .update({
       is_visible_to_client: parsed.data.isVisibleToClient,
       reviewed: parsed.data.reviewed,
+      is_confidential: parsed.data.isConfidential,
     })
     .eq("id", parsed.data.documentId);
 
