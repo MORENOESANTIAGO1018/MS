@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { PasswordResetForm } from "@/modules/auth/components/PasswordResetForm";
 
 export const metadata: Metadata = { title: "Recuperar acesso" };
+// Ver comentário em app/(institucional)/privacidade/page.tsx (nonce de CSP
+// por requisição exige renderização dinâmica).
+export const dynamic = "force-dynamic";
 
 export default function PasswordResetPage() {
   return (

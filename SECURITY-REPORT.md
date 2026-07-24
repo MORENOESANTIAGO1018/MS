@@ -1,7 +1,10 @@
-# Relatório de Segurança — Fase 13
+# Relatório de Segurança — Fase 13 (+ achados críticos da Fase 14)
 
 Data da revisão: ver histórico do commit que introduz este arquivo. Escopo: todo o
-código de `app/` e `src/` até o final da Fase 12, mais a própria Fase 13.
+código de `app/` e `src/` até o final da Fase 12, mais a própria Fase 13. A seção 6 foi
+adicionada durante a Fase 14 (Testes), quando rodar a suíte E2E contra um navegador
+real revelou dois achados que nenhuma checagem estática (lint/typecheck/curl) poderia
+ter capturado.
 
 ## 1. Metodologia
 
@@ -102,3 +105,57 @@ exija downgrade.
 - **`npm audit`**: as 3 cadeias vulneráveis descritas na seção 3 — sem correção
   disponível que não quebre o projeto; risco residual avaliado como baixo no contexto
   deste app (ver justificativa por pacote acima).
+
+## 6. Achados críticos da Fase 14 (só visíveis rodando num navegador real)
+
+A suíte E2E (Playwright, `tests/e2e/`) precisa de um build de produção rodando de
+verdade e de um navegador real executando JavaScript — algo que nem lint/typecheck nem
+`curl` conseguem exercitar. Rodá-la revelou dois bugs graves que passaram por todas as
+fases anteriores:
+
+### 6.1 CSP estático quebrava a hidratação do React em toda página
+
+A CSP `script-src 'self'` (sem nonce) bloqueava os próprios scripts inline de
+bootstrap que o Next.js App Router injeta em toda página (streaming de RSC). O
+resultado: o HTML servidor renderizava normalmente, mas o React nunca hidratava no
+navegador — **nenhum formulário, botão ou interação client-side funcionaria em
+produção**, apesar de todo o lint/typecheck/build passar sem erro. `curl` não detecta
+isso porque não executa JavaScript nem avalia CSP.
+
+**Correção**: CSP movida para `middleware.ts`, com um nonce novo gerado por
+requisição (`script-src 'self' 'nonce-<valor>' 'strict-dynamic'`), removida de
+`next.config.mjs` (que só produz cabeçalhos estáticos, incompatíveis com nonce por
+requisição). Três páginas que eram estaticamente pré-renderizadas no build
+(`/`, `/privacidade`, `/termos`, `/recuperar`) foram forçadas a renderização dinâmica
+(`export const dynamic = "force-dynamic"`), porque uma página verdadeiramente estática
+nunca recebe o nonce da requisição atual — seu HTML já foi fixado no momento do build.
+Confirmado com um teste manual de console do navegador (zero erros de CSP) e a suíte
+E2E completa passando.
+
+### 6.2 `checkRateLimit`/`recordAccessLog`/`recordAuditLog` não falhavam aberto de verdade
+
+Os três helpers já tinham comentários documentando a intenção de "fail-open" (não
+derrubar login/ação principal por indisponibilidade momentânea do Supabase), mas só
+protegiam o resultado da *query* — a criação do próprio cliente admin
+(`getSupabaseAdminClient()`, que lança exceção se `SUPABASE_SERVICE_ROLE_KEY` não
+estiver configurada) acontecia **fora** de qualquer `try/catch`. Na prática, isso
+significa que qualquer falha ao instanciar o cliente admin — chave ausente,
+indisponibilidade momentânea, erro de rede antes mesmo da query — derrubava o
+`login()`/`activateAccount()`/qualquer ação auditada inteiro com um 500, em vez do
+comportamento gracioso já documentado como intenção.
+
+Descoberto ao testar "credenciais inválidas" via Playwright: em vez da mensagem
+genérica esperada, a resposta era um 500 (`Error: SUPABASE_SERVICE_ROLE_KEY nao
+configurada`, disparado dentro de `checkRateLimit` e depois de novo em
+`recordAccessLog`). Em produção, com a chave sempre configurada, esse caminho
+específico não seria acionado — mas o princípio continua válido: **um helper de
+log/rate-limit nunca deve poder derrubar a operação principal**, e antes desta
+correção ele podia, sob qualquer falha na criação do cliente admin (não só ausência de
+chave — também erro de rede, por exemplo).
+
+**Correção**: os três helpers (`checkRateLimit`, `resetRateLimit` em
+`src/lib/server/rate-limit.ts`, `recordAccessLog` em `access-log.ts`,
+`recordAuditLog` em `audit-log.ts`) agora envolvem toda a função em `try/catch`,
+cobrindo também a criação do cliente admin — não só a query. Confirmado: o mesmo
+teste E2E de credenciais inválidas caiu de 500 (erro) para a mensagem genérica
+esperada em ~700ms.

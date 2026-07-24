@@ -2,14 +2,12 @@
 
 const isProd = process.env.NODE_ENV === "production";
 
-// Content-Security-Policy: sem 'unsafe-inline' para scripts. connect-src é
-// só 'self' porque o navegador nunca fala diretamente com Supabase/Notion/
-// Claude — toda chamada externa passa pelo servidor (Server Actions/Route
-// Handlers), conforme ARQUITETURA.md. Se algum dia um Client Component
-// passar a chamar o Supabase diretamente (ex.: Realtime), esta lista
-// precisa ser revisada e ampliada deliberadamente, nunca por omissão.
-const connectSrc = ["'self'"].join(" ");
-
+// Content-Security-Policy NÃO fica aqui: precisa de um nonce por requisição
+// para script-src funcionar sem 'unsafe-inline' (os scripts de bootstrap do
+// App Router são inline) — ver middleware.ts, que gera o nonce e monta o
+// CSP completo por requisição. Um CSP estático aqui, sem nonce, quebraria a
+// hidratação do React em todo o site (achado da Fase 14 — ver
+// SECURITY-REPORT.md).
 const securityHeaders = [
   {
     key: "X-Content-Type-Options",
@@ -27,19 +25,6 @@ const securityHeaders = [
     key: "Permissions-Policy",
     value:
       "camera=(), microphone=(), geolocation=(), interest-cohort=(), payment=()",
-  },
-  {
-    key: "Content-Security-Policy",
-    value: [
-      "default-src 'self'",
-      "img-src 'self' data: https://*.supabase.co",
-      `connect-src ${connectSrc}`,
-      "style-src 'self' 'unsafe-inline'",
-      "script-src 'self'",
-      "frame-ancestors 'none'",
-      "base-uri 'self'",
-      "form-action 'self'",
-    ].join("; "),
   },
 ];
 

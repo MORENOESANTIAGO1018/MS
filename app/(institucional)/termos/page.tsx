@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { getPublicEnv } from "@/lib/env";
 
 export const metadata: Metadata = { title: "Termos de Uso" };
+// Ver comentário equivalente em app/(institucional)/privacidade/page.tsx.
+export const dynamic = "force-dynamic";
 
 export default function TermosPage() {
   const env = getPublicEnv();

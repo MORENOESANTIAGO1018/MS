@@ -30,9 +30,41 @@ function isAdminPath(pathname: string): boolean {
   return pathname === ADMIN_PATH_PREFIX || pathname.startsWith(`${ADMIN_PATH_PREFIX}/`);
 }
 
+/**
+ * Monta o CSP com um nonce novo a cada requisição. É necessário gerar o
+ * nonce aqui (não em next.config.mjs, que só produz cabeçalhos estáticos)
+ * porque o App Router injeta scripts inline de bootstrap (RSC/hidratação)
+ * em toda página — sem um nonce correspondente, script-src 'self' bloqueia
+ * esses scripts e a página nunca hidrata no navegador (achado da Fase 14).
+ * O Next.js detecta automaticamente o nonce a partir deste cabeçalho e o
+ * aplica aos seus próprios scripts inline.
+ */
+function buildCsp(nonce: string): string {
+  const isProd = process.env.NODE_ENV === "production";
+  return [
+    "default-src 'self'",
+    "img-src 'self' data: https://*.supabase.co",
+    "connect-src 'self'",
+    "style-src 'self' 'unsafe-inline'",
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isProd ? "" : " 'unsafe-eval'"}`,
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+  ].join("; ");
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  let response = NextResponse.next({ request });
+
+  const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
+  const csp = buildCsp(nonce);
+
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-nonce", nonce);
+  requestHeaders.set("Content-Security-Policy", csp);
+
+  let response = NextResponse.next({ request: { headers: requestHeaders } });
+  response.headers.set("Content-Security-Policy", csp);
 
   const needsAuth = isProtectedPortalPath(pathname) || isAdminPath(pathname);
   if (!needsAuth) {
@@ -50,9 +82,10 @@ export async function middleware(request: NextRequest) {
         },
         setAll(cookiesToSet: { name: string; value: string; options?: CookieOptions }[]) {
           for (const { name, value } of cookiesToSet) {
-            request.cookies.set(name, value);
+            requestHeaders.set(name, value);
           }
-          response = NextResponse.next({ request });
+          response = NextResponse.next({ request: { headers: requestHeaders } });
+          response.headers.set("Content-Security-Policy", csp);
           for (const { name, value, options } of cookiesToSet) {
             response.cookies.set(name, value, options as CookieOptions);
           }

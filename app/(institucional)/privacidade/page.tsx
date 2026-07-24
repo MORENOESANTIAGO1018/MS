@@ -2,6 +2,11 @@ import type { Metadata } from "next";
 import { getPublicEnv } from "@/lib/env";
 
 export const metadata: Metadata = { title: "Política de Privacidade" };
+// Renderização dinâmica: o CSP usa um nonce por requisição (middleware.ts)
+// para permitir os scripts inline de bootstrap do App Router sem
+// 'unsafe-inline'; uma página estática pré-renderizada no build nunca
+// receberia esse nonce (achado da Fase 14 — ver SECURITY-REPORT.md).
+export const dynamic = "force-dynamic";
 
 export default function PrivacidadePage() {
   const env = getPublicEnv();

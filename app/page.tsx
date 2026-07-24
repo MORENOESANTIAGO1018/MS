@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { getPublicEnv } from "@/lib/env";
 
+// Renderização dinâmica: necessária para que o nonce de CSP por requisição
+// (middleware.ts) chegue aos scripts inline de bootstrap do App Router —
+// ver comentário em app/(institucional)/privacidade/page.tsx.
+export const dynamic = "force-dynamic";
+
 export default function HomePage() {
   const env = getPublicEnv();
 
